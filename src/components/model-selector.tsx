@@ -41,14 +41,7 @@ export function ModelSelector({ currentTextModel, onTextModelChange }: ModelSele
 
   const getModelDescription = (modelName: string): string => {
     const descriptions: Record<string, string> = {
-      'openai': 'GPT-4 - Balanced performance and quality (default)',
-      'openai-fast': 'GPT-4 Turbo - Faster responses, good quality',
-      'openai-large': 'GPT-4 - Highest quality, slower',
-      'qwen-coder': 'Qwen Coder - Specialized for technical content',
-      'mistral': 'Mistral - Strong multilingual support',
-      'gemini': 'Gemini - Google AI with search capabilities',
-      'claude': 'Claude - Excellent reasoning and long context',
-      'llama': 'Llama - Open source, privacy focused'
+      'gemini': 'Gemini - Google AI with search capabilities and code execution'
     }
     return descriptions[modelName] || modelName
   }
@@ -96,14 +89,7 @@ export function ModelSelector({ currentTextModel, onTextModelChange }: ModelSele
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="openai">OpenAI - GPT-4 (Recommended)</SelectItem>
-                <SelectItem value="openai-fast">OpenAI - GPT-4 Turbo (Fast)</SelectItem>
-                <SelectItem value="openai-large">OpenAI - GPT-4 (Large Context)</SelectItem>
-                <SelectItem value="qwen-coder">Qwen Coder (Technical)</SelectItem>
-                <SelectItem value="mistral">Mistral (Multilingual)</SelectItem>
                 <SelectItem value="gemini">Gemini (Google AI)</SelectItem>
-                <SelectItem value="claude">Claude (Advanced Reasoning)</SelectItem>
-                <SelectItem value="llama">Llama (Open Source)</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">

@@ -10,14 +10,7 @@ interface CurrentModelBadgeProps {
 export function CurrentModelBadge({ model, className = '' }: CurrentModelBadgeProps) {
   const getModelDisplayName = (modelName: PollinationsTextModel): string => {
     const displayNames: Record<PollinationsTextModel, string> = {
-      'openai': 'GPT-4',
-      'openai-fast': 'GPT-4 Turbo',
-      'openai-large': 'GPT-4 Large',
-      'qwen-coder': 'Qwen Coder',
-      'mistral': 'Mistral',
-      'gemini': 'Gemini',
-      'claude': 'Claude',
-      'llama': 'Llama'
+      'gemini': 'Gemini'
     }
     return displayNames[modelName] || modelName
   }

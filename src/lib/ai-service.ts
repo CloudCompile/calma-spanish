@@ -1,17 +1,9 @@
 import type { AIMessage, LearningMode, LearningMemory, ConversationRole } from '@/types'
 
-const POLLINATIONS_API_KEY = 'plln_sk_amxVcvsDDmwSZFwATTCQrIWDUeeCmH65'
+const POLLINATIONS_API_KEY = 'plln_sk_4qlkPG0xh9vo3F5qDgJctAhyJoCIuoBV'
 const API_BASE = 'https://gen.pollinations.ai'
 
-export type PollinationsTextModel = 
-  | 'openai' 
-  | 'openai-fast' 
-  | 'openai-large'
-  | 'qwen-coder'
-  | 'mistral'
-  | 'gemini'
-  | 'claude'
-  | 'llama'
+export type PollinationsTextModel = 'gemini'
 
 export type PollinationsImageModel = 
   | 'flux'
@@ -98,7 +90,7 @@ export class PollinationsAI {
         },
         body: JSON.stringify({
           messages,
-          model: 'openai-large',
+          model: 'gemini',
           temperature: options?.temperature ?? 0.7,
           max_tokens: options?.maxTokens ?? 2000,
           stream: options?.stream ?? false
@@ -129,7 +121,7 @@ export class PollinationsAI {
   ): Promise<string> {
     try {
       const params = new URLSearchParams()
-      params.append('model', 'openai-large')
+      params.append('model', 'gemini')
       if (options?.temperature !== undefined) params.append('temperature', options.temperature.toString())
       if (options?.system) params.append('system', options.system)
       if (options?.json) params.append('json', 'true')

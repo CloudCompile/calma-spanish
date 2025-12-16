@@ -42,7 +42,7 @@ function App() {
     preferredTopics: []
   })
 
-  const currentTextModel = 'openai-large' as const
+  const currentTextModel = 'gemini' as const
 
   const [learningMemory, setLearningMemory] = useKV<LearningMemory>(
     'learning-memory',
@@ -276,7 +276,7 @@ function App() {
 
               <div className="pt-4">
                 <p className="text-xs text-muted-foreground">
-                  Powered by Pollinations.AI · OpenAI Large Model
+                  Powered by Pollinations.AI · Gemini Model
                 </p>
               </div>
             </div>
@@ -331,7 +331,7 @@ function App() {
                 <div>
                   <p className="text-sm font-medium">AI-Powered Learning</p>
                   <p className="text-xs text-muted-foreground">
-                    Powered by OpenAI Large Language Model
+                    Powered by Google Gemini
                   </p>
                 </div>
               </div>
