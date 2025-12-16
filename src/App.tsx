@@ -10,7 +10,6 @@ import { GameFirstInterface } from './components/game-first-interface'
 import { MediaBasedInterface } from './components/media-based-interface'
 import { SlowHumanInterface } from './components/slow-human-interface'
 import { SettingsScreen } from './components/settings-screen'
-import { CurrentModelBadge } from './components/current-model-badge'
 import { GlassCard } from './components/glass-card'
 import { Button } from './components/ui/button'
 import { Toaster, toast } from 'sonner'
@@ -24,7 +23,6 @@ import type {
   ConversationFeedback,
   ProgressMetrics
 } from './types'
-import type { PollinationsTextModel } from './lib/ai-service'
 import { MemoryManager } from './lib/memory-manager'
 import { aiService } from './lib/ai-service'
 import { House, ChartLine, Gear, BookOpen, ArrowLeft, Brain } from '@phosphor-icons/react'
@@ -44,7 +42,7 @@ function App() {
     preferredTopics: []
   })
 
-  const [currentTextModel, setCurrentTextModel] = useKV<PollinationsTextModel>('ai-text-model', 'openai')
+  const currentTextModel = 'openai-large' as const
 
   const [learningMemory, setLearningMemory] = useKV<LearningMemory>(
     'learning-memory',
@@ -267,8 +265,8 @@ function App() {
                   <div>Learning Modes</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-foreground mb-1">8+</div>
-                  <div>AI Models</div>
+                  <div className="text-2xl font-bold text-foreground mb-1">AI</div>
+                  <div>Powered Learning</div>
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-foreground mb-1">∞</div>
@@ -278,7 +276,7 @@ function App() {
 
               <div className="pt-4">
                 <p className="text-xs text-muted-foreground">
-                  Powered by Pollinations.AI · GPT-4, Claude, Gemini & more
+                  Powered by Pollinations.AI · OpenAI Large Model
                 </p>
               </div>
             </div>
@@ -293,10 +291,7 @@ function App() {
                 <h1 className="text-4xl font-bold mb-2">
                   Welcome back, {userProfile?.name || 'Learner'}
                 </h1>
-                <div className="flex items-center gap-4">
-                  <p className="text-muted-foreground">Ready to continue your journey?</p>
-                  <CurrentModelBadge model={currentTextModel!} />
-                </div>
+                <p className="text-muted-foreground">Ready to continue your journey?</p>
               </div>
               <Button variant="outline" onClick={() => setScreen('progress')}>
                 <ChartLine size={20} weight="duotone" className="mr-2" />
@@ -331,24 +326,14 @@ function App() {
             </GlassCard>
 
             <GlassCard className="p-6 bg-primary/5 border-primary/20">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Brain size={24} weight="duotone" className="text-primary" />
-                  <div>
-                    <p className="text-sm font-medium">AI-Powered Learning</p>
-                    <p className="text-xs text-muted-foreground">
-                      Currently using {currentTextModel} model
-                    </p>
-                  </div>
+              <div className="flex items-center gap-3">
+                <Brain size={24} weight="duotone" className="text-primary" />
+                <div>
+                  <p className="text-sm font-medium">AI-Powered Learning</p>
+                  <p className="text-xs text-muted-foreground">
+                    Powered by OpenAI Large Language Model
+                  </p>
                 </div>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setScreen('settings')}
-                  className="border-primary/30 hover:bg-primary/10"
-                >
-                  Switch Model
-                </Button>
               </div>
             </GlassCard>
           </div>
@@ -528,8 +513,6 @@ function App() {
             <SettingsScreen
               userProfile={userProfile!}
               onUpdateProfile={setUserProfile}
-              currentTextModel={currentTextModel!}
-              onTextModelChange={setCurrentTextModel}
             />
           </div>
         )

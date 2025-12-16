@@ -5,7 +5,6 @@ import { Label } from './ui/label'
 import { Slider } from './ui/slider'
 import { Input } from './ui/input'
 import { Separator } from './ui/separator'
-import { ModelSelector } from './model-selector'
 import { 
   Gear, 
   User, 
@@ -16,21 +15,16 @@ import {
 } from '@phosphor-icons/react'
 import { motion } from 'framer-motion'
 import type { UserProfile } from '@/types'
-import type { PollinationsTextModel } from '@/lib/ai-service'
 import { toast } from 'sonner'
 
 interface SettingsScreenProps {
   userProfile: UserProfile
   onUpdateProfile: (profile: UserProfile) => void
-  currentTextModel: PollinationsTextModel
-  onTextModelChange: (model: PollinationsTextModel) => void
 }
 
 export function SettingsScreen({
   userProfile,
-  onUpdateProfile,
-  currentTextModel,
-  onTextModelChange
+  onUpdateProfile
 }: SettingsScreenProps) {
   const [name, setName] = useState(userProfile.name)
   const [immersionLevel, setImmersionLevel] = useState(userProfile.immersionLevel)
@@ -158,10 +152,25 @@ export function SettingsScreen({
         </div>
 
         <div className="space-y-6">
-          <ModelSelector 
-            currentTextModel={currentTextModel}
-            onTextModelChange={onTextModelChange}
-          />
+          <GlassCard className="p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <Brain size={24} weight="duotone" className="text-primary" />
+              <h3 className="text-lg font-semibold">AI Model</h3>
+            </div>
+
+            <div className="space-y-4">
+              <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                  <p className="font-semibold text-primary">OpenAI Large</p>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Advanced language model optimized for natural conversations and detailed explanations. 
+                  Provides the highest quality learning experience.
+                </p>
+              </div>
+            </div>
+          </GlassCard>
 
           <GlassCard className="p-6">
             <div className="flex items-center gap-3 mb-4">
@@ -206,9 +215,9 @@ export function SettingsScreen({
             <div className="space-y-3">
               <h4 className="text-sm font-semibold text-accent-foreground">About Pollinations.AI</h4>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                This app is powered by Pollinations.AI, providing access to multiple 
-                state-of-the-art language models including GPT-4, Claude, Gemini, and more. 
-                Choose the model that works best for your learning style.
+                This app is powered by Pollinations.AI with the OpenAI Large model, 
+                providing state-of-the-art language understanding for the best possible 
+                Spanish learning experience.
               </p>
               <div className="pt-2">
                 <a 

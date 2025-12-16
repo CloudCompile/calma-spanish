@@ -98,7 +98,7 @@ export class PollinationsAI {
         },
         body: JSON.stringify({
           messages,
-          model: options?.model ?? 'openai',
+          model: 'openai-large',
           temperature: options?.temperature ?? 0.7,
           max_tokens: options?.maxTokens ?? 2000,
           stream: options?.stream ?? false
@@ -129,7 +129,7 @@ export class PollinationsAI {
   ): Promise<string> {
     try {
       const params = new URLSearchParams()
-      if (options?.model) params.append('model', options.model)
+      params.append('model', 'openai-large')
       if (options?.temperature !== undefined) params.append('temperature', options.temperature.toString())
       if (options?.system) params.append('system', options.system)
       if (options?.json) params.append('json', 'true')
