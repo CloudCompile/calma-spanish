@@ -44,11 +44,11 @@ export function SettingsScreen({
   }
 
   const getImmersionDescription = (level: number): string => {
-    if (level <= 2) return 'Mostly Spanish explanations'
-    if (level <= 4) return 'Balanced target language and Spanish'
-    if (level <= 6) return 'More target language, some Spanish support'
-    if (level <= 8) return 'Mostly target language, minimal Spanish'
-    return 'Full target language immersion'
+    if (level <= 2) return 'Mostly English explanations, simple exercises'
+    if (level <= 4) return 'Balanced English explanations with more target language'
+    if (level <= 6) return 'English explanations, challenging target language exercises'
+    if (level <= 8) return 'Brief English explanations, advanced exercises'
+    return 'Minimal English support, native-level content'
   }
 
   return (
@@ -126,7 +126,7 @@ export function SettingsScreen({
                 ))}
               </RadioGroup>
               <p className="text-xs text-muted-foreground pt-2">
-                Note: All explanations and feedback will be provided in Spanish, regardless of your target language.
+                Note: All explanations and feedback will be provided in English, regardless of your target language.
               </p>
             </div>
           </GlassCard>
@@ -243,9 +243,9 @@ export function SettingsScreen({
               <div className="flex items-start gap-3 p-3 rounded-lg bg-background/30">
                 <Translate size={20} weight="duotone" className="text-primary mt-0.5" />
                 <div>
-                  <p className="font-medium mb-1">Spanish Explanations</p>
+                  <p className="font-medium mb-1">English Explanations</p>
                   <p className="text-xs text-muted-foreground">
-                    All feedback and explanations provided in Spanish to enhance learning
+                    All feedback and teaching provided in English for clarity
                   </p>
                 </div>
               </div>

@@ -10,6 +10,8 @@ import { GameFirstInterface } from './components/game-first-interface'
 import { MediaBasedInterface } from './components/media-based-interface'
 import { SlowHumanInterface } from './components/slow-human-interface'
 import { SettingsScreen } from './components/settings-screen'
+import { VocabularyTrainer } from './components/vocabulary-trainer'
+import { DailyChallenge } from './components/daily-challenge'
 import { GlassCard } from './components/glass-card'
 import { Button } from './components/ui/button'
 import { Toaster, toast } from 'sonner'
@@ -25,10 +27,10 @@ import type {
 } from './types'
 import { MemoryManager } from './lib/memory-manager'
 import { aiService } from './lib/ai-service'
-import { House, ChartLine, Gear, BookOpen, ArrowLeft, Brain } from '@phosphor-icons/react'
+import { House, ChartLine, Gear, BookOpen, ArrowLeft, Brain, BookBookmark } from '@phosphor-icons/react'
 import { AnimatePresence, motion } from 'framer-motion'
 
-type Screen = 'landing' | 'dashboard' | 'mode-select' | 'learning' | 'progress' | 'conversation-setup' | 'settings'
+type Screen = 'landing' | 'dashboard' | 'mode-select' | 'learning' | 'progress' | 'conversation-setup' | 'settings' | 'vocabulary'
 
 function App() {
   const [screen, setScreen] = useState<Screen>('landing')
@@ -255,7 +257,7 @@ function App() {
 
               <GlassCard variant="strong" className="p-8">
                 <p className="text-lg mb-6 leading-relaxed">
-                  Choose how you want to learn. Switch modes anytime. Learn Spanish, Chinese, or Japanese with AI-powered explanations in Spanish. Build confidence
+                  Choose how you want to learn. Switch modes anytime. Master Spanish, Chinese, or Japanese with AI-powered lessons taught in English. Build confidence
                   at your own pace in a judgment-free space designed for your success.
                 </p>
                 <Button size="lg" className="w-full" onClick={() => setScreen('dashboard')}>
@@ -280,7 +282,7 @@ function App() {
 
               <div className="pt-4">
                 <p className="text-xs text-muted-foreground">
-                  Powered by Pollinations.AI · Google Gemini · Spanish, Chinese & Japanese
+                  Powered by Pollinations.AI · Google Gemini · Taught in English
                 </p>
               </div>
             </div>
@@ -301,6 +303,34 @@ function App() {
                 <ChartLine size={20} weight="duotone" className="mr-2" />
                 View Progress
               </Button>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-2">
+              <DailyChallenge 
+                targetLanguage={userProfile?.targetLanguage || 'spanish'}
+                learningMemory={learningMemory!}
+              />
+              
+              <GlassCard className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-1">
+                      Quick Practice
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Strengthen your vocabulary
+                    </p>
+                  </div>
+                  <BookBookmark size={24} weight="duotone" className="text-primary" />
+                </div>
+                <Button 
+                  className="w-full" 
+                  variant="outline"
+                  onClick={() => setScreen('vocabulary')}
+                >
+                  Start Vocabulary Practice
+                </Button>
+              </GlassCard>
             </div>
 
             <ModeSelector
@@ -524,6 +554,25 @@ function App() {
             />
           </div>
         )
+      
+      case 'vocabulary':
+        return (
+          <div className="p-6 md:p-12">
+            <Button
+              variant="ghost"
+              onClick={() => setScreen('dashboard')}
+              className="mb-6"
+            >
+              <ArrowLeft size={20} className="mr-2" />
+              Back to Dashboard
+            </Button>
+            <VocabularyTrainer
+              targetLanguage={userProfile?.targetLanguage || 'spanish'}
+              learningMemory={learningMemory!}
+              onUpdateMemory={setLearningMemory}
+            />
+          </div>
+        )
 
       default:
         return null
@@ -549,6 +598,13 @@ function App() {
                   onClick={() => setScreen('dashboard')}
                 >
                   <House size={20} weight="duotone" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setScreen('vocabulary')}
+                >
+                  <BookBookmark size={20} weight="duotone" />
                 </Button>
                 <Button
                   variant="ghost"

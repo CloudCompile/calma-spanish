@@ -93,15 +93,17 @@ export class PollinationsAI {
     }
   ): Promise<string> {
     try {
-      if (messages.length === 0) {
+      if (!messages || messages.length === 0) {
         throw new Error('Messages array cannot be empty')
       }
 
       const filteredMessages = messages
-        .filter(msg => msg.content && typeof msg.content === 'string' && msg.content.trim().length > 0)
+        .filter(msg => msg && msg.content && typeof msg.content === 'string' && msg.content.trim().length > 0)
         .map(msg => ({
-          role: msg.role,
-          content: msg.content.trim()
+          role: msg.role === 'system' ? 'user' : msg.role,
+          content: msg.role === 'system' 
+            ? `[SYSTEM INSTRUCTIONS]\n${msg.content.trim()}\n[END SYSTEM INSTRUCTIONS]`
+            : msg.content.trim()
         }))
       
       if (filteredMessages.length === 0) {
@@ -112,12 +114,13 @@ export class PollinationsAI {
         messages: filteredMessages,
         model: 'gemini',
         temperature: options?.temperature ?? 0.7,
-        max_tokens: options?.maxTokens ?? 2000,
+        max_tokens: options?.maxTokens ?? 3000,
         stream: options?.stream ?? false
       }
 
       if (options?.jsonMode) {
         requestBody.response_format = { type: 'json_object' }
+        filteredMessages[filteredMessages.length - 1].content += '\n\nIMPORTANT: Respond with ONLY valid JSON. No markdown code blocks, no additional text.'
       }
 
       const response = await fetch(`${API_BASE}/v1/chat/completions`, {
@@ -237,17 +240,27 @@ export class PollinationsAI {
     const languageName = langConfig.name
     const nativeLanguageName = langConfig.nativeName
     
-    const basePrompt = `You are an expert ${languageName} language tutor with deep empathy and pedagogical expertise. Your goal is to help users learn ${languageName} in a way that feels safe, intelligent, and personalized.
+    const basePrompt = `You are an expert ${languageName} language tutor with deep empathy and pedagogical expertise. Your goal is to help English-speaking users learn ${languageName} in a way that feels safe, intelligent, and personalized.
 
-CRITICAL: ALL explanations, feedback, and grammar notes MUST be in English, regardless of the target language being taught. Only the ${languageName} content itself should be in ${nativeLanguageName}.
+CRITICAL INSTRUCTION: ALL explanations, feedback, grammar notes, and teaching MUST be in English. You are teaching ${languageName} TO English speakers THROUGH English.
 
-Target language: ${languageName} (${nativeLanguageName})
-User's immersion level: ${immersionLevel}/10 (0=more English explanations, 10=less English explanations, more ${nativeLanguageName})
-Known weak areas: ${userMemory.weakAreas.map(w => w.category).join(', ') || 'None yet'}
-Mastered concepts: ${userMemory.masteredConcepts.join(', ') || 'Just starting'}
-Recent grammar mistakes: ${userMemory.grammarMistakes.slice(0, 3).map(m => m.concept).join(', ') || 'None yet'}
+- User's native language: English
+- Target language being learned: ${languageName} (${nativeLanguageName})
+- User's immersion level: ${immersionLevel}/10 (0=more English explanations, 10=more ${nativeLanguageName} in exercises but ALL explanations stay in English)
+- Known weak areas: ${userMemory.weakAreas.map(w => w.category).join(', ') || 'None yet'}
+- Mastered concepts: ${userMemory.masteredConcepts.join(', ') || 'Just starting'}
+- Recent grammar mistakes: ${userMemory.grammarMistakes.slice(0, 3).map(m => m.concept).join(', ') || 'None yet'}
 
-REMEMBER: Explain everything in English. Teach ${languageName} through English explanations.`
+LANGUAGE RULES:
+- Explanations: ALWAYS English
+- Grammar rules: ALWAYS English
+- Feedback: ALWAYS English
+- Instructions: ALWAYS English
+- Exercise prompts: English
+- ${languageName} content: In ${nativeLanguageName} (this is what they're learning)
+- Translations: Provide English translations
+
+Think of yourself as an English-speaking teacher helping someone learn ${languageName}.`
 
     const modePrompts: Record<LearningMode, string> = {
       'smart-tutor': `${basePrompt}
