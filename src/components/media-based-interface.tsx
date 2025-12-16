@@ -8,17 +8,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
 import { ScrollArea } from './ui/scroll-area'
 import { Television, YoutubeLogo, MusicNotes, ChatCircle, Sparkle } from '@phosphor-icons/react'
 import { motion } from 'framer-motion'
-import type { LearningMemory, MediaContent, ContentHighlight, CulturalNote } from '@/types'
+import type { LearningMemory, MediaContent, ContentHighlight, CulturalNote, TargetLanguage } from '@/types'
 import { aiService } from '@/lib/ai-service'
 import { toast } from 'sonner'
 
 interface MediaBasedInterfaceProps {
+  targetLanguage: TargetLanguage
   learningMemory: LearningMemory
   immersionLevel: number
   onUpdateMemory: (memory: LearningMemory) => void
 }
 
 export function MediaBasedInterface({
+  targetLanguage,
   learningMemory,
   immersionLevel,
   onUpdateMemory
@@ -40,6 +42,7 @@ export function MediaBasedInterface({
 
     try {
       const response = await aiService.simplifyMediaContent(
+        targetLanguage,
         rawContent,
         contentType,
         immersionLevel,

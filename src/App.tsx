@@ -36,6 +36,7 @@ function App() {
     id: `user_${Date.now()}`,
     name: 'Learner',
     createdAt: new Date().toISOString(),
+    targetLanguage: 'spanish',
     currentMode: 'smart-tutor',
     immersionLevel: 5,
     confidenceLevel: 50,
@@ -102,6 +103,7 @@ function App() {
     setIsAILoading(true)
     try {
       const greeting = await aiService.respondToConversation(
+        userProfile!.targetLanguage,
         role,
         [],
         learningMemory!,
@@ -147,6 +149,7 @@ function App() {
       ]
 
       const response = await aiService.respondToConversation(
+        userProfile!.targetLanguage,
         selectedRole!,
         conversationHistory as any,
         learningMemory!,
@@ -186,6 +189,7 @@ function App() {
       }))
 
       const feedbackJson = await aiService.generateConversationFeedback(
+        userProfile!.targetLanguage,
         conversationHistory as any,
         learningMemory!,
         userProfile!.immersionLevel
@@ -245,13 +249,13 @@ function App() {
                   Aprende
                 </h1>
                 <p className="text-xl text-muted-foreground">
-                  Learn Spanish your way, with AI that adapts to you
+                  Learn languages your way, with AI that adapts to you
                 </p>
               </motion.div>
 
               <GlassCard variant="strong" className="p-8">
                 <p className="text-lg mb-6 leading-relaxed">
-                  Choose how you want to learn. Switch modes anytime. Build confidence
+                  Choose how you want to learn. Switch modes anytime. Learn Spanish, Chinese, or Japanese with AI-powered explanations in Spanish. Build confidence
                   at your own pace in a judgment-free space designed for your success.
                 </p>
                 <Button size="lg" className="w-full" onClick={() => setScreen('dashboard')}>
@@ -265,8 +269,8 @@ function App() {
                   <div>Learning Modes</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-foreground mb-1">AI</div>
-                  <div>Powered Learning</div>
+                  <div className="text-2xl font-bold text-foreground mb-1">3</div>
+                  <div>Languages</div>
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-foreground mb-1">∞</div>
@@ -276,7 +280,7 @@ function App() {
 
               <div className="pt-4">
                 <p className="text-xs text-muted-foreground">
-                  Powered by Pollinations.AI · Gemini Model
+                  Powered by Pollinations.AI · Google Gemini · Spanish, Chinese & Japanese
                 </p>
               </div>
             </div>
@@ -402,6 +406,7 @@ function App() {
             case 'smart-tutor':
               return (
                 <SmartTutorInterface
+                  targetLanguage={userProfile!.targetLanguage}
                   learningMemory={learningMemory!}
                   immersionLevel={userProfile!.immersionLevel}
                   onUpdateMemory={setLearningMemory}
@@ -418,6 +423,7 @@ function App() {
             case 'game-first':
               return (
                 <GameFirstInterface
+                  targetLanguage={userProfile!.targetLanguage}
                   learningMemory={learningMemory!}
                   immersionLevel={userProfile!.immersionLevel}
                   onUpdateMemory={setLearningMemory}
@@ -434,6 +440,7 @@ function App() {
             case 'media-based':
               return (
                 <MediaBasedInterface
+                  targetLanguage={userProfile!.targetLanguage}
                   learningMemory={learningMemory!}
                   immersionLevel={userProfile!.immersionLevel}
                   onUpdateMemory={setLearningMemory}
@@ -443,6 +450,7 @@ function App() {
             case 'slow-human':
               return (
                 <SlowHumanInterface
+                  targetLanguage={userProfile!.targetLanguage}
                   learningMemory={learningMemory!}
                   immersionLevel={userProfile!.immersionLevel}
                   onUpdateMemory={setLearningMemory}

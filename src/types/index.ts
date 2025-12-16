@@ -1,9 +1,12 @@
+export type TargetLanguage = 'spanish' | 'chinese' | 'japanese'
+
 export type LearningMode = 'smart-tutor' | 'game-first' | 'conversation' | 'media-based' | 'slow-human'
 
 export interface UserProfile {
   id: string
   name: string
   createdAt: string
+  targetLanguage: TargetLanguage
   currentMode: LearningMode
   immersionLevel: number
   confidenceLevel: number
@@ -64,7 +67,7 @@ export interface Message {
   role: 'user' | 'ai'
   content: string
   timestamp: string
-  language: 'es' | 'en' | 'mixed'
+  language: 'es' | 'zh' | 'ja' | 'en' | 'mixed'
 }
 
 export interface ConversationFeedback {

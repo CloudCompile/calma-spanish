@@ -1,9 +1,19 @@
-import type { AIMessage, LearningMode, LearningMemory, ConversationRole } from '@/types'
+import type { AIMessage, LearningMode, LearningMemory, ConversationRole, TargetLanguage } from '@/types'
 
 const POLLINATIONS_API_KEY = 'plln_sk_4qlkPG0xh9vo3F5qDgJctAhyJoCIuoBV'
 const API_BASE = 'https://gen.pollinations.ai'
 
 export type PollinationsTextModel = 'gemini'
+
+const LANGUAGE_CONFIG: Record<TargetLanguage, {
+  name: string
+  nativeName: string
+  code: 'es' | 'zh' | 'ja'
+}> = {
+  spanish: { name: 'Spanish', nativeName: 'Español', code: 'es' },
+  chinese: { name: 'Chinese', nativeName: '中文', code: 'zh' },
+  japanese: { name: 'Japanese', nativeName: '日本語', code: 'ja' }
+}
 
 export type PollinationsImageModel = 
   | 'flux'
@@ -87,6 +97,12 @@ export class PollinationsAI {
         throw new Error('Messages array cannot be empty')
       }
 
+      const filteredMessages = messages.filter(msg => msg.content && msg.content.trim().length > 0)
+      
+      if (filteredMessages.length === 0) {
+        throw new Error('All messages have empty content')
+      }
+
       const response = await fetch(`${API_BASE}/v1/chat/completions`, {
         method: 'POST',
         headers: {
@@ -94,7 +110,7 @@ export class PollinationsAI {
           'Authorization': `Bearer ${this.apiKey}`
         },
         body: JSON.stringify({
-          messages,
+          messages: filteredMessages,
           model: 'gemini',
           temperature: options?.temperature ?? 0.7,
           max_tokens: options?.maxTokens ?? 2000,
@@ -197,89 +213,100 @@ export class PollinationsAI {
   }
 
   buildSystemPrompt(
+    targetLanguage: TargetLanguage,
     mode: LearningMode,
     userMemory: LearningMemory,
     immersionLevel: number
   ): string {
-    const basePrompt = `You are an expert Spanish language tutor with deep empathy and pedagogical expertise. Your goal is to help users learn Spanish in a way that feels safe, intelligent, and personalized.
+    const langConfig = LANGUAGE_CONFIG[targetLanguage]
+    const languageName = langConfig.name
+    const nativeLanguageName = langConfig.nativeName
+    
+    const basePrompt = `You are an expert ${languageName} language tutor with deep empathy and pedagogical expertise. Your goal is to help users learn ${languageName} in a way that feels safe, intelligent, and personalized.
 
-User's immersion level: ${immersionLevel}/10 (0=all English explanations, 10=almost all Spanish)
-Known weak areas: ${userMemory.weakAreas.map(w => w.category).join(', ') || 'None yet'}
-Mastered concepts: ${userMemory.masteredConcepts.join(', ') || 'Just starting'}
-Recent grammar mistakes: ${userMemory.grammarMistakes.slice(0, 3).map(m => m.concept).join(', ') || 'None yet'}
-`
+CRITICAL: ALL explanations, feedback, and grammar notes MUST be in Spanish (Español), regardless of the target language being taught. Only the ${languageName} content itself should be in ${nativeLanguageName}.
+
+Target language: ${languageName} (${nativeLanguageName})
+User's immersion level: ${immersionLevel}/10 (0=more Spanish explanations, 10=less Spanish explanations, more ${nativeLanguageName})
+Known weak areas: ${userMemory.weakAreas.map(w => w.category).join(', ') || 'Ninguna todavía'}
+Mastered concepts: ${userMemory.masteredConcepts.join(', ') || 'Recién comenzando'}
+Recent grammar mistakes: ${userMemory.grammarMistakes.slice(0, 3).map(m => m.concept).join(', ') || 'Ninguno todavía'}
+
+REMEMBER: Explain everything in Spanish. Teach ${languageName} through Spanish explanations.`
 
     const modePrompts: Record<LearningMode, string> = {
       'smart-tutor': `${basePrompt}
 
-MODE: Smart Tutor (Structured & Adaptive)
-- Act like a patient, knowledgeable teacher
-- Provide explicit grammar explanations
-- Build lessons progressively  
-- Correct mistakes immediately with clear explanations
-- Use a balance of Spanish and English based on immersion level
-- Focus on understanding "why" not just "what"`,
+MODE: Smart Tutor (Estructurado y Adaptativo)
+- Actúa como un maestro paciente y conocedor
+- Proporciona explicaciones gramaticales explícitas EN ESPAÑOL
+- Construye lecciones progresivamente  
+- Corrige errores inmediatamente con explicaciones claras EN ESPAÑOL
+- Usa un equilibrio de ${nativeLanguageName} y explicaciones en español basado en el nivel de inmersión
+- Enfócate en entender el "por qué" no solo el "qué"`,
 
       'game-first': `${basePrompt}
 
-MODE: Game-First (Playful & Challenging)
-- Make learning feel like a fun challenge
-- Use encouraging, energetic language
-- Keep exercises bite-sized and varied
-- Celebrate wins enthusiastically
-- Provide quick, light corrections
-- Focus on momentum and progress`,
+MODE: Game-First (Lúdico y Desafiante)
+- Haz que el aprendizaje se sienta como un desafío divertido
+- Usa lenguaje alentador y enérgico EN ESPAÑOL
+- Mantén los ejercicios breves y variados
+- Celebra las victorias con entusiasmo EN ESPAÑOL
+- Proporciona correcciones rápidas y ligeras EN ESPAÑOL
+- Enfócate en el impulso y el progreso`,
 
       'conversation': `${basePrompt}
 
-MODE: Conversation-First (Natural Dialogue)
-- Act naturally in your assigned role
-- Respond to user's Spanish realistically, not like a teacher
-- DO NOT correct mistakes during conversation
-- Match the user's language level but stay in character
-- Keep conversation flowing naturally
-- Save all corrections for post-conversation feedback`,
+MODE: Conversation-First (Diálogo Natural)
+- Actúa naturalmente en tu rol asignado
+- Responde al ${nativeLanguageName} del usuario de manera realista, no como un maestro
+- NO corrijas errores durante la conversación
+- Coincide con el nivel de idioma del usuario pero mantente en personaje
+- Mantén la conversación fluyendo naturalmente
+- Guarda todas las correcciones para la retroalimentación post-conversación EN ESPAÑOL`,
 
       'media-based': `${basePrompt}
 
-MODE: Media-Based (Content-Driven)
-- Analyze and simplify provided content to user's level
-- Explain slang, idioms, and cultural context
-- Highlight the most useful phrases
-- Make content accessible and engaging
-- Generate exercises based on the content
-- Help user connect with authentic Spanish media`,
+MODE: Media-Based (Basado en Contenido)
+- Analiza y simplifica el contenido proporcionado al nivel del usuario
+- Explica jerga, modismos y contexto cultural EN ESPAÑOL
+- Destaca las frases más útiles
+- Haz que el contenido sea accesible y atractivo
+- Genera ejercicios basados en el contenido
+- Ayuda al usuario a conectarse con medios auténticos en ${languageName}`,
 
       'slow-human': `${basePrompt}
 
-MODE: Slow & Human (Patient & Supportive)
-- Use the warmest, most patient tone possible
-- Never rush or pressure the user
-- Celebrate every small win genuinely
-- Correct mistakes gently and constructively
-- Provide extra encouragement
-- Focus on building confidence above all else
-- Use more English explanations to reduce cognitive load`
+MODE: Slow & Human (Paciente y Solidario)
+- Usa el tono más cálido y paciente posible EN ESPAÑOL
+- Nunca apresures ni presiones al usuario
+- Celebra cada pequeña victoria genuinamente EN ESPAÑOL
+- Corrige errores gentilmente y constructivamente EN ESPAÑOL
+- Proporciona aliento adicional EN ESPAÑOL
+- Enfócate en construir confianza por encima de todo
+- Usa más explicaciones en español para reducir la carga cognitiva`
     }
 
     return modePrompts[mode]
   }
 
   async generateLesson(
+    targetLanguage: TargetLanguage,
     mode: LearningMode,
     userMemory: LearningMemory,
     immersionLevel: number,
     topic?: string,
     model?: PollinationsTextModel
   ): Promise<string> {
-    const systemPrompt = this.buildSystemPrompt(mode, userMemory, immersionLevel)
+    const systemPrompt = this.buildSystemPrompt(targetLanguage, mode, userMemory, immersionLevel)
+    const langConfig = LANGUAGE_CONFIG[targetLanguage]
     
     const userPrompt = topic 
-      ? `Generate a focused Spanish lesson on: ${topic}. Include 3-5 exercises appropriate for the current mode. Return valid JSON only with structure: { "title": "lesson title", "description": "lesson description", "exercises": [{"type": "exercise type", "prompt": "question", "correctAnswer": "answer", "options": ["option1", "option2"]}], "grammarConcepts": ["concept1"], "vocabulary": ["word1"] }`
-      : `Generate a personalized Spanish lesson that addresses the user's weak areas while building on mastered concepts. Include 3-5 varied exercises. Return valid JSON only with structure: { "title": "lesson title", "description": "lesson description", "exercises": [{"type": "exercise type", "prompt": "question", "correctAnswer": "answer", "options": ["option1", "option2"]}], "grammarConcepts": ["concept1"], "vocabulary": ["word1"] }`
+      ? `Genera una lección enfocada en ${langConfig.name} sobre: ${topic}. Incluye 3-5 ejercicios apropiados para el modo actual. Devuelve SOLO JSON válido con esta estructura: { "title": "título de la lección", "description": "descripción de la lección", "exercises": [{"type": "tipo de ejercicio", "prompt": "pregunta", "correctAnswer": "respuesta", "options": ["opción1", "opción2"]}], "grammarConcepts": ["concepto1"], "vocabulary": ["palabra1"] }`
+      : `Genera una lección personalizada de ${langConfig.name} que aborde las áreas débiles del usuario mientras construye sobre los conceptos dominados. Incluye 3-5 ejercicios variados. Devuelve SOLO JSON válido con esta estructura: { "title": "título de la lección", "description": "descripción de la lección", "exercises": [{"type": "tipo de ejercicio", "prompt": "pregunta", "correctAnswer": "respuesta", "options": ["opción1", "opción2"]}], "grammarConcepts": ["concepto1"], "vocabulary": ["palabra1"] }`
 
     const messages: AIMessage[] = [
-      { role: 'system', content: systemPrompt + '\n\nIMPORTANT: Return ONLY valid JSON, no markdown code blocks, no extra text.' },
+      { role: 'system', content: systemPrompt + '\n\nIMPORTANTE: Devuelve SOLO JSON válido, sin bloques de código markdown, sin texto extra. Todas las explicaciones deben estar en español.' },
       { role: 'user', content: userPrompt }
     ]
 
@@ -287,32 +314,34 @@ MODE: Slow & Human (Patient & Supportive)
   }
 
   async respondToConversation(
+    targetLanguage: TargetLanguage,
     role: ConversationRole,
     conversationHistory: AIMessage[],
     userMemory: LearningMemory,
     immersionLevel: number,
     model?: PollinationsTextModel
   ): Promise<string> {
+    const langConfig = LANGUAGE_CONFIG[targetLanguage]
     const roleDescriptions: Record<ConversationRole, string> = {
-      barista: "You're a friendly barista at a café in Madrid. Keep responses natural and in character.",
-      friend: "You're a close friend catching up. Be warm, casual, and conversational.",
-      coworker: "You're a colleague at work. Be professional but friendly.",
-      traveler: "You're a helpful local giving directions or travel advice.",
-      stranger: "You're a friendly stranger in a social situation (party, event, etc).",
-      custom: "Stay in character as described."
+      barista: `Eres un barista amigable en una cafetería. Mantén las respuestas naturales y en personaje. Habla en ${langConfig.nativeName}.`,
+      friend: `Eres un amigo cercano poniéndose al día. Sé cálido, casual y conversacional en ${langConfig.nativeName}.`,
+      coworker: `Eres un colega en el trabajo. Sé profesional pero amigable en ${langConfig.nativeName}.`,
+      traveler: `Eres un local servicial dando direcciones o consejos de viaje en ${langConfig.nativeName}.`,
+      stranger: `Eres un extraño amigable en una situación social (fiesta, evento, etc) hablando en ${langConfig.nativeName}.`,
+      custom: `Mantente en personaje como se describe, hablando en ${langConfig.nativeName}.`
     }
 
-    const systemPrompt = `${this.buildSystemPrompt('conversation', userMemory, immersionLevel)}
+    const systemPrompt = `${this.buildSystemPrompt(targetLanguage, 'conversation', userMemory, immersionLevel)}
 
-You are playing the role of: ${roleDescriptions[role]}
+Estás interpretando el papel de: ${roleDescriptions[role]}
 
-Critical instructions:
-- Respond ONLY in Spanish (adjust complexity to user's level)
-- Stay completely in character - you're not a teacher during the conversation
-- Keep responses natural and conversational (2-4 sentences max)
-- DO NOT correct grammar or mistakes - just respond naturally
-- If user makes mistakes, understand their intent and respond naturally
-- Match their language level but stay authentic to your role`
+Instrucciones críticas:
+- Responde SOLO en ${langConfig.nativeName} (ajusta la complejidad al nivel del usuario)
+- Mantente completamente en personaje - no eres un maestro durante la conversación
+- Mantén las respuestas naturales y conversacionales (máximo 2-4 oraciones)
+- NO corrijas gramática o errores - solo responde naturalmente
+- Si el usuario comete errores, entiende su intención y responde naturalmente
+- Coincide con su nivel de idioma pero mantente auténtico a tu papel`
 
     const messages: AIMessage[] = [
       { role: 'system', content: systemPrompt }
@@ -321,7 +350,7 @@ Critical instructions:
     if (conversationHistory.length === 0) {
       messages.push({ 
         role: 'user', 
-        content: 'Start a conversation with me in Spanish. Greet me naturally as your character would.' 
+        content: `Inicia una conversación conmigo en ${langConfig.nativeName}. Salúdame naturalmente como lo haría tu personaje.` 
       })
     } else {
       messages.push(...conversationHistory)
@@ -331,34 +360,36 @@ Critical instructions:
   }
 
   async generateConversationFeedback(
+    targetLanguage: TargetLanguage,
     conversationHistory: AIMessage[],
     userMemory: LearningMemory,
     immersionLevel: number,
     model?: PollinationsTextModel
   ): Promise<string> {
-    const systemPrompt = `You are an expert Spanish teacher analyzing a conversation. Provide constructive, encouraging feedback.
+    const langConfig = LANGUAGE_CONFIG[targetLanguage]
+    const systemPrompt = `Eres un maestro experto de ${langConfig.name} analizando una conversación. Proporciona retroalimentación constructiva y alentadora EN ESPAÑOL.
 
-Return ONLY valid JSON with this structure:
+Devuelve SOLO JSON válido con esta estructura:
 {
-  "strengths": ["specific things they did well"],
-  "improvements": ["gentle suggestions for improvement"],
+  "strengths": ["cosas específicas que hicieron bien - EN ESPAÑOL"],
+  "improvements": ["sugerencias amables para mejorar - EN ESPAÑOL"],
   "nativePhrasings": [
     {
-      "userSaid": "what the user said",
-      "nativeSays": "how a native speaker would say it",
-      "explanation": "brief explanation of the difference"
+      "userSaid": "lo que dijo el usuario",
+      "nativeSays": "cómo lo diría un hablante nativo",
+      "explanation": "breve explicación de la diferencia - EN ESPAÑOL"
     }
   ],
   "overallScore": 85
 }
 
-Focus on being encouraging while providing actionable insights. Return ONLY the JSON, no markdown blocks.`
+Enfócate en ser alentador mientras proporcionas ideas accionables. Devuelve SOLO el JSON, sin bloques de markdown. TODO EN ESPAÑOL.`
 
     const messages: AIMessage[] = [
       { role: 'system', content: systemPrompt },
       { 
         role: 'user', 
-        content: `Analyze this conversation:\n\n${JSON.stringify(conversationHistory, null, 2)}` 
+        content: `Analiza esta conversación:\n\n${JSON.stringify(conversationHistory, null, 2)}` 
       }
     ]
 
@@ -366,53 +397,58 @@ Focus on being encouraging while providing actionable insights. Return ONLY the 
   }
 
   async simplifyMediaContent(
+    targetLanguage: TargetLanguage,
     content: string,
     contentType: 'youtube' | 'lyrics' | 'dialogue',
     userLevel: number,
     userMemory: LearningMemory,
     model?: PollinationsTextModel
   ): Promise<string> {
-    const systemPrompt = `You are an expert at adapting Spanish content to learner levels.
+    const langConfig = LANGUAGE_CONFIG[targetLanguage]
+    const systemPrompt = `Eres un experto en adaptar contenido de ${langConfig.name} a niveles de aprendizaje.
 
-User's level: ${userLevel}/10
-Content type: ${contentType}
+Nivel del usuario: ${userLevel}/10
+Tipo de contenido: ${contentType}
 
-Analyze and simplify this content. Return ONLY valid JSON with this structure (no markdown blocks):
+Analiza y simplifica este contenido. Devuelve SOLO JSON válido con esta estructura (sin bloques markdown):
 {
-  "simplifiedContent": "version appropriate for user's level",
+  "simplifiedContent": "versión apropiada para el nivel del usuario",
   "highlights": [
     {
-      "phrase": "useful phrase or idiom",
-      "translation": "English translation",
-      "explanation": "why it's useful",
+      "phrase": "frase útil o modismo",
+      "translation": "traducción al español",
+      "explanation": "por qué es útil - EN ESPAÑOL",
       "usefulness": 8
     }
   ],
   "culturalNotes": [
     {
-      "term": "cultural term or reference",
-      "explanation": "what it means",
-      "context": "cultural background"
+      "term": "término o referencia cultural",
+      "explanation": "qué significa - EN ESPAÑOL",
+      "context": "trasfondo cultural - EN ESPAÑOL"
     }
   ],
   "followUpExercises": [
     {
-      "type": "exercise type",
-      "prompt": "exercise prompt",
-      "correctAnswer": "answer"
+      "type": "tipo de ejercicio",
+      "prompt": "indicación del ejercicio - EN ESPAÑOL",
+      "correctAnswer": "respuesta"
     }
   ]
-}`
+}
+
+IMPORTANTE: Todas las explicaciones deben estar EN ESPAÑOL.`
 
     const messages: AIMessage[] = [
       { role: 'system', content: systemPrompt },
-      { role: 'user', content: `Content to analyze:\n\n${content}` }
+      { role: 'user', content: `Contenido para analizar:\n\n${content}` }
     ]
 
     return await this.chatCompletion(messages, { model, temperature: 0.7, jsonMode: true })
   }
 
   async checkExerciseAnswer(
+    targetLanguage: TargetLanguage,
     exercise: {
       prompt: string
       userAnswer: string
@@ -423,32 +459,35 @@ Analyze and simplify this content. Return ONLY valid JSON with this structure (n
     immersionLevel: number,
     model?: PollinationsTextModel
   ): Promise<string> {
+    const langConfig = LANGUAGE_CONFIG[targetLanguage]
     const modeStyles: Record<LearningMode, string> = {
-      'smart-tutor': 'Provide detailed explanation of correctness and why',
-      'game-first': 'Keep it brief and encouraging with energy',
-      'conversation': 'Natural conversational feedback',
-      'media-based': 'Relate feedback back to the content context',
-      'slow-human': 'Be extremely gentle, warm, and patient. Focus on what they got right first.'
+      'smart-tutor': 'Proporciona explicación detallada de la corrección y el por qué - EN ESPAÑOL',
+      'game-first': 'Manténlo breve y alentador con energía - EN ESPAÑOL',
+      'conversation': 'Retroalimentación conversacional natural - EN ESPAÑOL',
+      'media-based': 'Relaciona la retroalimentación con el contexto del contenido - EN ESPAÑOL',
+      'slow-human': 'Sé extremadamente gentil, cálido y paciente. Enfócate primero en lo que hicieron bien - EN ESPAÑOL'
     }
 
-    const systemPrompt = `You are providing feedback on a Spanish exercise.
-Mode: ${mode} - ${modeStyles[mode]}
-Immersion level: ${immersionLevel}/10
+    const systemPrompt = `Estás proporcionando retroalimentación sobre un ejercicio de ${langConfig.name}.
+Modo: ${mode} - ${modeStyles[mode]}
+Nivel de inmersión: ${immersionLevel}/10
 
-Return ONLY valid JSON with this structure (no markdown blocks):
+Devuelve SOLO JSON válido con esta estructura (sin bloques markdown):
 {
   "isCorrect": true,
-  "feedback": "your feedback message",
-  "explanation": "why the answer is right/wrong",
-  "encouragement": "positive reinforcement",
-  "grammarConcepts": ["concepts involved"]
-}`
+  "feedback": "tu mensaje de retroalimentación - EN ESPAÑOL",
+  "explanation": "por qué la respuesta es correcta/incorrecta - EN ESPAÑOL",
+  "encouragement": "refuerzo positivo - EN ESPAÑOL",
+  "grammarConcepts": ["conceptos involucrados"]
+}
+
+IMPORTANTE: Toda la retroalimentación debe estar EN ESPAÑOL.`
 
     const messages: AIMessage[] = [
       { role: 'system', content: systemPrompt },
       { 
         role: 'user', 
-        content: `Exercise: ${exercise.prompt}\nUser answered: "${exercise.userAnswer}"\nCorrect answer: "${exercise.correctAnswer}"\nExercise type: ${exercise.type}` 
+        content: `Ejercicio: ${exercise.prompt}\nEl usuario respondió: "${exercise.userAnswer}"\nRespuesta correcta: "${exercise.correctAnswer}"\nTipo de ejercicio: ${exercise.type}` 
       }
     ]
 
@@ -457,3 +496,4 @@ Return ONLY valid JSON with this structure (no markdown blocks):
 }
 
 export const aiService = new PollinationsAI()
+export { LANGUAGE_CONFIG }

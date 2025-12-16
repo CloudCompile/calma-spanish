@@ -6,7 +6,7 @@ import { Badge } from './ui/badge'
 import { Progress } from './ui/progress'
 import { GameController, Trophy, Lightning, Fire, Star, Target } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
-import type { LearningMemory, Exercise } from '@/types'
+import type { LearningMemory, Exercise, TargetLanguage } from '@/types'
 import { aiService } from '@/lib/ai-service'
 import { toast } from 'sonner'
 
@@ -19,6 +19,7 @@ interface GameChallenge {
 }
 
 interface GameFirstInterfaceProps {
+  targetLanguage: TargetLanguage
   learningMemory: LearningMemory
   immersionLevel: number
   onUpdateMemory: (memory: LearningMemory) => void
@@ -26,6 +27,7 @@ interface GameFirstInterfaceProps {
 }
 
 export function GameFirstInterface({
+  targetLanguage,
   learningMemory,
   immersionLevel,
   onUpdateMemory,
@@ -67,6 +69,7 @@ export function GameFirstInterface({
 
     try {
       const response = await aiService.generateLesson(
+        targetLanguage,
         'game-first',
         learningMemory,
         immersionLevel
@@ -103,6 +106,7 @@ export function GameFirstInterface({
 
     try {
       const response = await aiService.checkExerciseAnswer(
+        targetLanguage,
         {
           prompt: currentExercise.prompt,
           userAnswer,

@@ -9,7 +9,7 @@ import { Progress } from './ui/progress'
 import { Badge } from './ui/badge'
 import { CheckCircle, XCircle, Sparkle, ArrowRight, BookOpen } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
-import type { LearningMemory, Exercise } from '@/types'
+import type { LearningMemory, Exercise, TargetLanguage } from '@/types'
 import { aiService } from '@/lib/ai-service'
 import { toast } from 'sonner'
 
@@ -22,6 +22,7 @@ interface Lesson {
 }
 
 interface SmartTutorInterfaceProps {
+  targetLanguage: TargetLanguage
   learningMemory: LearningMemory
   immersionLevel: number
   onUpdateMemory: (memory: LearningMemory) => void
@@ -29,6 +30,7 @@ interface SmartTutorInterfaceProps {
 }
 
 export function SmartTutorInterface({
+  targetLanguage,
   learningMemory,
   immersionLevel,
   onUpdateMemory,
@@ -51,6 +53,7 @@ export function SmartTutorInterface({
 
     try {
       const response = await aiService.generateLesson(
+        targetLanguage,
         'smart-tutor',
         learningMemory,
         immersionLevel
@@ -76,6 +79,7 @@ export function SmartTutorInterface({
 
     try {
       const response = await aiService.checkExerciseAnswer(
+        targetLanguage,
         {
           prompt: currentExercise.prompt,
           userAnswer,

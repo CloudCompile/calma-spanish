@@ -5,11 +5,12 @@ import { Textarea } from './ui/textarea'
 import { Badge } from './ui/badge'
 import { Plant, Heart, Sparkle, Sun } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
-import type { LearningMemory, Exercise } from '@/types'
+import type { LearningMemory, Exercise, TargetLanguage } from '@/types'
 import { aiService } from '@/lib/ai-service'
 import { toast } from 'sonner'
 
 interface SlowHumanInterfaceProps {
+  targetLanguage: TargetLanguage
   learningMemory: LearningMemory
   immersionLevel: number
   onUpdateMemory: (memory: LearningMemory) => void
@@ -24,6 +25,7 @@ interface GentleLesson {
 }
 
 export function SlowHumanInterface({
+  targetLanguage,
   learningMemory,
   immersionLevel,
   onUpdateMemory,
@@ -47,6 +49,7 @@ export function SlowHumanInterface({
 
     try {
       const response = await aiService.generateLesson(
+        targetLanguage,
         'slow-human',
         learningMemory,
         Math.max(immersionLevel - 2, 1)
@@ -78,6 +81,7 @@ export function SlowHumanInterface({
 
     try {
       const response = await aiService.checkExerciseAnswer(
+        targetLanguage,
         {
           prompt: currentExercise.prompt,
           userAnswer,
