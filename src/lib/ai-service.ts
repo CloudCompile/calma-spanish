@@ -97,10 +97,27 @@ export class PollinationsAI {
         throw new Error('Messages array cannot be empty')
       }
 
-      const filteredMessages = messages.filter(msg => msg.content && msg.content.trim().length > 0)
+      const filteredMessages = messages
+        .filter(msg => msg.content && typeof msg.content === 'string' && msg.content.trim().length > 0)
+        .map(msg => ({
+          role: msg.role,
+          content: msg.content.trim()
+        }))
       
       if (filteredMessages.length === 0) {
         throw new Error('All messages have empty content')
+      }
+
+      const requestBody: any = {
+        messages: filteredMessages,
+        model: 'gemini',
+        temperature: options?.temperature ?? 0.7,
+        max_tokens: options?.maxTokens ?? 2000,
+        stream: options?.stream ?? false
+      }
+
+      if (options?.jsonMode) {
+        requestBody.response_format = { type: 'json_object' }
       }
 
       const response = await fetch(`${API_BASE}/v1/chat/completions`, {
@@ -109,14 +126,7 @@ export class PollinationsAI {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.apiKey}`
         },
-        body: JSON.stringify({
-          messages: filteredMessages,
-          model: 'gemini',
-          temperature: options?.temperature ?? 0.7,
-          max_tokens: options?.maxTokens ?? 2000,
-          stream: options?.stream ?? false,
-          response_format: options?.jsonMode ? { type: 'json_object' } : undefined
-        })
+        body: JSON.stringify(requestBody)
       })
 
       if (!response.ok) {
@@ -125,11 +135,13 @@ export class PollinationsAI {
       }
 
       const data = await response.json()
-      let content = data.choices[0].message.content
+      let content = data.choices[0]?.message?.content || ''
 
-      if (options?.jsonMode) {
-        content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+      if (!content) {
+        throw new Error('API returned empty content')
       }
+
+      content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
 
       return content
     } catch (error) {
@@ -219,6 +231,9 @@ export class PollinationsAI {
     immersionLevel: number
   ): string {
     const langConfig = LANGUAGE_CONFIG[targetLanguage]
+    if (!langConfig) {
+      throw new Error(`Unknown target language: ${targetLanguage}`)
+    }
     const languageName = langConfig.name
     const nativeLanguageName = langConfig.nativeName
     
@@ -300,6 +315,9 @@ MODE: Slow & Human (Paciente y Solidario)
   ): Promise<string> {
     const systemPrompt = this.buildSystemPrompt(targetLanguage, mode, userMemory, immersionLevel)
     const langConfig = LANGUAGE_CONFIG[targetLanguage]
+    if (!langConfig) {
+      throw new Error(`Unknown target language: ${targetLanguage}`)
+    }
     
     const userPrompt = topic 
       ? `Genera una lección enfocada en ${langConfig.name} sobre: ${topic}. Incluye 3-5 ejercicios apropiados para el modo actual. Devuelve SOLO JSON válido con esta estructura: { "title": "título de la lección", "description": "descripción de la lección", "exercises": [{"type": "tipo de ejercicio", "prompt": "pregunta", "correctAnswer": "respuesta", "options": ["opción1", "opción2"]}], "grammarConcepts": ["concepto1"], "vocabulary": ["palabra1"] }`
@@ -322,6 +340,9 @@ MODE: Slow & Human (Paciente y Solidario)
     model?: PollinationsTextModel
   ): Promise<string> {
     const langConfig = LANGUAGE_CONFIG[targetLanguage]
+    if (!langConfig) {
+      throw new Error(`Unknown target language: ${targetLanguage}`)
+    }
     const roleDescriptions: Record<ConversationRole, string> = {
       barista: `Eres un barista amigable en una cafetería. Mantén las respuestas naturales y en personaje. Habla en ${langConfig.nativeName}.`,
       friend: `Eres un amigo cercano poniéndose al día. Sé cálido, casual y conversacional en ${langConfig.nativeName}.`,
@@ -367,6 +388,9 @@ Instrucciones críticas:
     model?: PollinationsTextModel
   ): Promise<string> {
     const langConfig = LANGUAGE_CONFIG[targetLanguage]
+    if (!langConfig) {
+      throw new Error(`Unknown target language: ${targetLanguage}`)
+    }
     const systemPrompt = `Eres un maestro experto de ${langConfig.name} analizando una conversación. Proporciona retroalimentación constructiva y alentadora EN ESPAÑOL.
 
 Devuelve SOLO JSON válido con esta estructura:
@@ -405,6 +429,9 @@ Enfócate en ser alentador mientras proporcionas ideas accionables. Devuelve SOL
     model?: PollinationsTextModel
   ): Promise<string> {
     const langConfig = LANGUAGE_CONFIG[targetLanguage]
+    if (!langConfig) {
+      throw new Error(`Unknown target language: ${targetLanguage}`)
+    }
     const systemPrompt = `Eres un experto en adaptar contenido de ${langConfig.name} a niveles de aprendizaje.
 
 Nivel del usuario: ${userLevel}/10
@@ -460,6 +487,9 @@ IMPORTANTE: Todas las explicaciones deben estar EN ESPAÑOL.`
     model?: PollinationsTextModel
   ): Promise<string> {
     const langConfig = LANGUAGE_CONFIG[targetLanguage]
+    if (!langConfig) {
+      throw new Error(`Unknown target language: ${targetLanguage}`)
+    }
     const modeStyles: Record<LearningMode, string> = {
       'smart-tutor': 'Proporciona explicación detallada de la corrección y el por qué - EN ESPAÑOL',
       'game-first': 'Manténlo breve y alentador con energía - EN ESPAÑOL',
