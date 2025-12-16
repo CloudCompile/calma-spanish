@@ -5,6 +5,10 @@ import { ConversationInterface } from './components/conversation-interface'
 import { RoleSelector } from './components/role-selector'
 import { ProgressDashboard } from './components/progress-dashboard'
 import { FeedbackPanel } from './components/feedback-panel'
+import { SmartTutorInterface } from './components/smart-tutor-interface'
+import { GameFirstInterface } from './components/game-first-interface'
+import { MediaBasedInterface } from './components/media-based-interface'
+import { SlowHumanInterface } from './components/slow-human-interface'
 import { GlassCard } from './components/glass-card'
 import { Button } from './components/ui/button'
 import { Toaster, toast } from 'sonner'
@@ -370,6 +374,81 @@ function App() {
           )
         }
 
+        const renderLearningMode = () => {
+          const mode = userProfile?.currentMode
+
+          switch (mode) {
+            case 'smart-tutor':
+              return (
+                <SmartTutorInterface
+                  learningMemory={learningMemory!}
+                  immersionLevel={userProfile!.immersionLevel}
+                  onUpdateMemory={setLearningMemory}
+                  onProgressUpdate={(completed) => {
+                    setProgressMetrics((prev) => ({
+                      ...prev!,
+                      lessonsCompleted: prev!.lessonsCompleted + 1,
+                      totalMinutes: prev!.totalMinutes + completed * 2
+                    }))
+                  }}
+                />
+              )
+
+            case 'game-first':
+              return (
+                <GameFirstInterface
+                  learningMemory={learningMemory!}
+                  immersionLevel={userProfile!.immersionLevel}
+                  onUpdateMemory={setLearningMemory}
+                  onProgressUpdate={(completed) => {
+                    setProgressMetrics((prev) => ({
+                      ...prev!,
+                      lessonsCompleted: prev!.lessonsCompleted + 1,
+                      totalMinutes: prev!.totalMinutes + completed
+                    }))
+                  }}
+                />
+              )
+
+            case 'media-based':
+              return (
+                <MediaBasedInterface
+                  learningMemory={learningMemory!}
+                  immersionLevel={userProfile!.immersionLevel}
+                  onUpdateMemory={setLearningMemory}
+                />
+              )
+
+            case 'slow-human':
+              return (
+                <SlowHumanInterface
+                  learningMemory={learningMemory!}
+                  immersionLevel={userProfile!.immersionLevel}
+                  onUpdateMemory={setLearningMemory}
+                  onProgressUpdate={(completed) => {
+                    setProgressMetrics((prev) => ({
+                      ...prev!,
+                      lessonsCompleted: prev!.lessonsCompleted + 1,
+                      totalMinutes: prev!.totalMinutes + completed * 3
+                    }))
+                  }}
+                />
+              )
+
+            default:
+              return (
+                <GlassCard variant="strong" className="p-12 text-center">
+                  <BookOpen size={64} weight="duotone" className="mx-auto mb-4 text-primary" />
+                  <h2 className="text-2xl font-bold mb-3">Select a Learning Mode</h2>
+                  <p className="text-muted-foreground mb-6">
+                    Choose how you want to learn from the dashboard
+                  </p>
+                  <Button onClick={() => setScreen('dashboard')}>Back to Dashboard</Button>
+                </GlassCard>
+              )
+          }
+        }
+
         return (
           <div className="p-6 md:p-12">
             <Button
@@ -378,18 +457,9 @@ function App() {
               className="mb-6"
             >
               <ArrowLeft size={20} className="mr-2" />
-              Back
+              Back to Dashboard
             </Button>
-            <GlassCard variant="strong" className="p-12 text-center">
-              <BookOpen size={64} weight="duotone" className="mx-auto mb-4 text-primary" />
-              <h2 className="text-2xl font-bold mb-3">
-                {userProfile?.currentMode.replace('-', ' ') || 'Learning'} Mode
-              </h2>
-              <p className="text-muted-foreground mb-6">
-                This mode is being prepared for you...
-              </p>
-              <Button onClick={() => setScreen('dashboard')}>Back to Dashboard</Button>
-            </GlassCard>
+            {renderLearningMode()}
           </div>
         )
 

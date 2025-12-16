@@ -1,7 +1,7 @@
 import type { AIMessage, LearningMode, LearningMemory, ConversationRole } from '@/types'
 
 const POLLINATIONS_API_KEY = 'plln_sk_amxVcvsDDmwSZFwATTCQrIWDUeeCmH65'
-const API_BASE = 'https://api.pollinations.ai'
+const API_BASE = 'https://gen.pollinations.ai'
 
 export class PollinationsAI {
   private apiKey: string
