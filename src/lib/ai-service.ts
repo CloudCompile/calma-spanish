@@ -79,9 +79,14 @@ export class PollinationsAI {
       temperature?: number
       maxTokens?: number
       stream?: boolean
+      jsonMode?: boolean
     }
   ): Promise<string> {
     try {
+      if (messages.length === 0) {
+        throw new Error('Messages array cannot be empty')
+      }
+
       const response = await fetch(`${API_BASE}/v1/chat/completions`, {
         method: 'POST',
         headers: {
@@ -93,7 +98,8 @@ export class PollinationsAI {
           model: 'gemini',
           temperature: options?.temperature ?? 0.7,
           max_tokens: options?.maxTokens ?? 2000,
-          stream: options?.stream ?? false
+          stream: options?.stream ?? false,
+          response_format: options?.jsonMode ? { type: 'json_object' } : undefined
         })
       })
 
@@ -103,7 +109,13 @@ export class PollinationsAI {
       }
 
       const data = await response.json()
-      return data.choices[0].message.content
+      let content = data.choices[0].message.content
+
+      if (options?.jsonMode) {
+        content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+      }
+
+      return content
     } catch (error) {
       console.error('Pollinations API error:', error)
       throw error
@@ -263,15 +275,15 @@ MODE: Slow & Human (Patient & Supportive)
     const systemPrompt = this.buildSystemPrompt(mode, userMemory, immersionLevel)
     
     const userPrompt = topic 
-      ? `Generate a focused Spanish lesson on: ${topic}. Include 3-5 exercises appropriate for the current mode. Format as JSON with structure: { title, description, exercises: [{type, prompt, correctAnswer, options?}], grammarConcepts: [], vocabulary: [] }`
-      : `Generate a personalized Spanish lesson that addresses the user's weak areas while building on mastered concepts. Include 3-5 varied exercises. Format as JSON with structure: { title, description, exercises: [{type, prompt, correctAnswer, options?}], grammarConcepts: [], vocabulary: [] }`
+      ? `Generate a focused Spanish lesson on: ${topic}. Include 3-5 exercises appropriate for the current mode. Return valid JSON only with structure: { "title": "lesson title", "description": "lesson description", "exercises": [{"type": "exercise type", "prompt": "question", "correctAnswer": "answer", "options": ["option1", "option2"]}], "grammarConcepts": ["concept1"], "vocabulary": ["word1"] }`
+      : `Generate a personalized Spanish lesson that addresses the user's weak areas while building on mastered concepts. Include 3-5 varied exercises. Return valid JSON only with structure: { "title": "lesson title", "description": "lesson description", "exercises": [{"type": "exercise type", "prompt": "question", "correctAnswer": "answer", "options": ["option1", "option2"]}], "grammarConcepts": ["concept1"], "vocabulary": ["word1"] }`
 
     const messages: AIMessage[] = [
-      { role: 'system', content: systemPrompt },
+      { role: 'system', content: systemPrompt + '\n\nIMPORTANT: Return ONLY valid JSON, no markdown code blocks, no extra text.' },
       { role: 'user', content: userPrompt }
     ]
 
-    return await this.chatCompletion(messages, { model, temperature: 0.8 })
+    return await this.chatCompletion(messages, { model, temperature: 0.8, jsonMode: true })
   }
 
   async respondToConversation(
@@ -303,9 +315,17 @@ Critical instructions:
 - Match their language level but stay authentic to your role`
 
     const messages: AIMessage[] = [
-      { role: 'system', content: systemPrompt },
-      ...conversationHistory
+      { role: 'system', content: systemPrompt }
     ]
+
+    if (conversationHistory.length === 0) {
+      messages.push({ 
+        role: 'user', 
+        content: 'Start a conversation with me in Spanish. Greet me naturally as your character would.' 
+      })
+    } else {
+      messages.push(...conversationHistory)
+    }
 
     return await this.chatCompletion(messages, { model, temperature: 0.9 })
   }
@@ -318,7 +338,7 @@ Critical instructions:
   ): Promise<string> {
     const systemPrompt = `You are an expert Spanish teacher analyzing a conversation. Provide constructive, encouraging feedback.
 
-Analyze the conversation and provide feedback in JSON format:
+Return ONLY valid JSON with this structure:
 {
   "strengths": ["specific things they did well"],
   "improvements": ["gentle suggestions for improvement"],
@@ -329,10 +349,10 @@ Analyze the conversation and provide feedback in JSON format:
       "explanation": "brief explanation of the difference"
     }
   ],
-  "overallScore": 0-100
+  "overallScore": 85
 }
 
-Focus on being encouraging while providing actionable insights.`
+Focus on being encouraging while providing actionable insights. Return ONLY the JSON, no markdown blocks.`
 
     const messages: AIMessage[] = [
       { role: 'system', content: systemPrompt },
@@ -342,7 +362,7 @@ Focus on being encouraging while providing actionable insights.`
       }
     ]
 
-    return await this.chatCompletion(messages, { model, temperature: 0.6 })
+    return await this.chatCompletion(messages, { model, temperature: 0.6, jsonMode: true })
   }
 
   async simplifyMediaContent(
@@ -357,7 +377,7 @@ Focus on being encouraging while providing actionable insights.`
 User's level: ${userLevel}/10
 Content type: ${contentType}
 
-Analyze and simplify this content. Return JSON:
+Analyze and simplify this content. Return ONLY valid JSON with this structure (no markdown blocks):
 {
   "simplifiedContent": "version appropriate for user's level",
   "highlights": [
@@ -365,7 +385,7 @@ Analyze and simplify this content. Return JSON:
       "phrase": "useful phrase or idiom",
       "translation": "English translation",
       "explanation": "why it's useful",
-      "usefulness": 1-10
+      "usefulness": 8
     }
   ],
   "culturalNotes": [
@@ -389,7 +409,7 @@ Analyze and simplify this content. Return JSON:
       { role: 'user', content: `Content to analyze:\n\n${content}` }
     ]
 
-    return await this.chatCompletion(messages, { model, temperature: 0.7 })
+    return await this.chatCompletion(messages, { model, temperature: 0.7, jsonMode: true })
   }
 
   async checkExerciseAnswer(
@@ -415,9 +435,9 @@ Analyze and simplify this content. Return JSON:
 Mode: ${mode} - ${modeStyles[mode]}
 Immersion level: ${immersionLevel}/10
 
-Provide feedback in JSON:
+Return ONLY valid JSON with this structure (no markdown blocks):
 {
-  "isCorrect": boolean,
+  "isCorrect": true,
   "feedback": "your feedback message",
   "explanation": "why the answer is right/wrong",
   "encouragement": "positive reinforcement",
@@ -432,7 +452,7 @@ Provide feedback in JSON:
       }
     ]
 
-    return await this.chatCompletion(messages, { model, temperature: 0.6 })
+    return await this.chatCompletion(messages, { model, temperature: 0.6, jsonMode: true })
   }
 }
 
