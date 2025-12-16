@@ -9,6 +9,8 @@ import { SmartTutorInterface } from './components/smart-tutor-interface'
 import { GameFirstInterface } from './components/game-first-interface'
 import { MediaBasedInterface } from './components/media-based-interface'
 import { SlowHumanInterface } from './components/slow-human-interface'
+import { SettingsScreen } from './components/settings-screen'
+import { CurrentModelBadge } from './components/current-model-badge'
 import { GlassCard } from './components/glass-card'
 import { Button } from './components/ui/button'
 import { Toaster, toast } from 'sonner'
@@ -22,12 +24,13 @@ import type {
   ConversationFeedback,
   ProgressMetrics
 } from './types'
+import type { PollinationsTextModel } from './lib/ai-service'
 import { MemoryManager } from './lib/memory-manager'
 import { aiService } from './lib/ai-service'
-import { House, ChartLine, Gear, BookOpen, ArrowLeft } from '@phosphor-icons/react'
+import { House, ChartLine, Gear, BookOpen, ArrowLeft, Brain } from '@phosphor-icons/react'
 import { AnimatePresence, motion } from 'framer-motion'
 
-type Screen = 'landing' | 'dashboard' | 'mode-select' | 'learning' | 'progress' | 'conversation-setup'
+type Screen = 'landing' | 'dashboard' | 'mode-select' | 'learning' | 'progress' | 'conversation-setup' | 'settings'
 
 function App() {
   const [screen, setScreen] = useState<Screen>('landing')
@@ -40,6 +43,8 @@ function App() {
     confidenceLevel: 50,
     preferredTopics: []
   })
+
+  const [currentTextModel, setCurrentTextModel] = useKV<PollinationsTextModel>('ai-text-model', 'openai')
 
   const [learningMemory, setLearningMemory] = useKV<LearningMemory>(
     'learning-memory',
@@ -262,13 +267,19 @@ function App() {
                   <div>Learning Modes</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-foreground mb-1">AI</div>
-                  <div>Powered Tutor</div>
+                  <div className="text-2xl font-bold text-foreground mb-1">8+</div>
+                  <div>AI Models</div>
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-foreground mb-1">∞</div>
                   <div>Your Pace</div>
                 </div>
+              </div>
+
+              <div className="pt-4">
+                <p className="text-xs text-muted-foreground">
+                  Powered by Pollinations.AI · GPT-4, Claude, Gemini & more
+                </p>
               </div>
             </div>
           </motion.div>
@@ -282,7 +293,10 @@ function App() {
                 <h1 className="text-4xl font-bold mb-2">
                   Welcome back, {userProfile?.name || 'Learner'}
                 </h1>
-                <p className="text-muted-foreground">Ready to continue your journey?</p>
+                <div className="flex items-center gap-4">
+                  <p className="text-muted-foreground">Ready to continue your journey?</p>
+                  <CurrentModelBadge model={currentTextModel!} />
+                </div>
               </div>
               <Button variant="outline" onClick={() => setScreen('progress')}>
                 <ChartLine size={20} weight="duotone" className="mr-2" />
@@ -313,6 +327,28 @@ function App() {
                     {progressMetrics?.lessonsCompleted || 0} lessons completed
                   </p>
                 </div>
+              </div>
+            </GlassCard>
+
+            <GlassCard className="p-6 bg-primary/5 border-primary/20">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Brain size={24} weight="duotone" className="text-primary" />
+                  <div>
+                    <p className="text-sm font-medium">AI-Powered Learning</p>
+                    <p className="text-xs text-muted-foreground">
+                      Currently using {currentTextModel} model
+                    </p>
+                  </div>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setScreen('settings')}
+                  className="border-primary/30 hover:bg-primary/10"
+                >
+                  Switch Model
+                </Button>
               </div>
             </GlassCard>
           </div>
@@ -478,6 +514,26 @@ function App() {
           </div>
         )
 
+      case 'settings':
+        return (
+          <div className="p-6 md:p-12">
+            <Button
+              variant="ghost"
+              onClick={() => setScreen('dashboard')}
+              className="mb-6"
+            >
+              <ArrowLeft size={20} className="mr-2" />
+              Back
+            </Button>
+            <SettingsScreen
+              userProfile={userProfile!}
+              onUpdateProfile={setUserProfile}
+              currentTextModel={currentTextModel!}
+              onTextModelChange={setCurrentTextModel}
+            />
+          </div>
+        )
+
       default:
         return null
     }
@@ -510,7 +566,11 @@ function App() {
                 >
                   <ChartLine size={20} weight="duotone" />
                 </Button>
-                <Button variant="ghost" size="icon">
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => setScreen('settings')}
+                >
                   <Gear size={20} weight="duotone" />
                 </Button>
               </div>

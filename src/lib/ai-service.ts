@@ -3,6 +3,38 @@ import type { AIMessage, LearningMode, LearningMemory, ConversationRole } from '
 const POLLINATIONS_API_KEY = 'plln_sk_amxVcvsDDmwSZFwATTCQrIWDUeeCmH65'
 const API_BASE = 'https://gen.pollinations.ai'
 
+export type PollinationsTextModel = 
+  | 'openai' 
+  | 'openai-fast' 
+  | 'openai-large'
+  | 'qwen-coder'
+  | 'mistral'
+  | 'gemini'
+  | 'claude'
+  | 'llama'
+
+export type PollinationsImageModel = 
+  | 'flux'
+  | 'turbo'
+  | 'gptimage'
+  | 'kontext'
+  | 'seedream'
+  | 'nanobanana'
+  | 'nanobanana-pro'
+
+export interface ModelInfo {
+  name: string
+  aliases?: string[]
+  description?: string
+  input_modalities?: string[]
+  output_modalities?: string[]
+  tools?: boolean
+  vision?: boolean
+  audio?: boolean
+  reasoning?: boolean
+  context_window?: number
+}
+
 export class PollinationsAI {
   private apiKey: string
 
@@ -10,11 +42,51 @@ export class PollinationsAI {
     this.apiKey = POLLINATIONS_API_KEY
   }
 
+  async getAvailableTextModels(): Promise<ModelInfo[]> {
+    try {
+      const response = await fetch(`${API_BASE}/v1/models`, {
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch models: ${response.statusText}`)
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Error fetching text models:', error)
+      return []
+    }
+  }
+
+  async getAvailableImageModels(): Promise<ModelInfo[]> {
+    try {
+      const response = await fetch(`${API_BASE}/image/models`, {
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image models: ${response.statusText}`)
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Error fetching image models:', error)
+      return []
+    }
+  }
+
   async chatCompletion(
     messages: AIMessage[],
     options?: {
+      model?: PollinationsTextModel
       temperature?: number
       maxTokens?: number
+      stream?: boolean
     }
   ): Promise<string> {
     try {
@@ -26,20 +98,96 @@ export class PollinationsAI {
         },
         body: JSON.stringify({
           messages,
-          model: 'openai',
+          model: options?.model ?? 'openai',
           temperature: options?.temperature ?? 0.7,
-          max_tokens: options?.maxTokens ?? 2000
+          max_tokens: options?.maxTokens ?? 2000,
+          stream: options?.stream ?? false
         })
       })
 
       if (!response.ok) {
-        throw new Error(`API error: ${response.statusText}`)
+        const errorText = await response.text()
+        throw new Error(`API error: ${response.statusText} - ${errorText}`)
       }
 
       const data = await response.json()
       return data.choices[0].message.content
     } catch (error) {
       console.error('Pollinations API error:', error)
+      throw error
+    }
+  }
+
+  async simpleTextGeneration(
+    prompt: string,
+    options?: {
+      model?: PollinationsTextModel
+      temperature?: number
+      system?: string
+      json?: boolean
+    }
+  ): Promise<string> {
+    try {
+      const params = new URLSearchParams()
+      if (options?.model) params.append('model', options.model)
+      if (options?.temperature !== undefined) params.append('temperature', options.temperature.toString())
+      if (options?.system) params.append('system', options.system)
+      if (options?.json) params.append('json', 'true')
+
+      const url = `${API_BASE}/text/${encodeURIComponent(prompt)}${params.toString() ? '?' + params.toString() : ''}`
+      
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.statusText}`)
+      }
+
+      return await response.text()
+    } catch (error) {
+      console.error('Simple text generation error:', error)
+      throw error
+    }
+  }
+
+  async generateImage(
+    prompt: string,
+    options?: {
+      model?: PollinationsImageModel
+      width?: number
+      height?: number
+      seed?: number
+      enhance?: boolean
+      quality?: 'low' | 'medium' | 'high' | 'hd'
+    }
+  ): Promise<string> {
+    try {
+      const params = new URLSearchParams()
+      if (options?.model) params.append('model', options.model)
+      if (options?.width) params.append('width', options.width.toString())
+      if (options?.height) params.append('height', options.height.toString())
+      if (options?.seed !== undefined) params.append('seed', options.seed.toString())
+      if (options?.enhance) params.append('enhance', 'true')
+      if (options?.quality) params.append('quality', options.quality)
+
+      const url = `${API_BASE}/image/${encodeURIComponent(prompt)}${params.toString() ? '?' + params.toString() : ''}`
+      
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`Image generation error: ${response.statusText}`)
+      }
+
+      return url
+    } catch (error) {
+      console.error('Image generation error:', error)
       throw error
     }
   }
@@ -117,7 +265,8 @@ MODE: Slow & Human (Patient & Supportive)
     mode: LearningMode,
     userMemory: LearningMemory,
     immersionLevel: number,
-    topic?: string
+    topic?: string,
+    model?: PollinationsTextModel
   ): Promise<string> {
     const systemPrompt = this.buildSystemPrompt(mode, userMemory, immersionLevel)
     
@@ -130,14 +279,15 @@ MODE: Slow & Human (Patient & Supportive)
       { role: 'user', content: userPrompt }
     ]
 
-    return await this.chatCompletion(messages, { temperature: 0.8 })
+    return await this.chatCompletion(messages, { model, temperature: 0.8 })
   }
 
   async respondToConversation(
     role: ConversationRole,
     conversationHistory: AIMessage[],
     userMemory: LearningMemory,
-    immersionLevel: number
+    immersionLevel: number,
+    model?: PollinationsTextModel
   ): Promise<string> {
     const roleDescriptions: Record<ConversationRole, string> = {
       barista: "You're a friendly barista at a café in Madrid. Keep responses natural and in character.",
@@ -165,13 +315,14 @@ Critical instructions:
       ...conversationHistory
     ]
 
-    return await this.chatCompletion(messages, { temperature: 0.9 })
+    return await this.chatCompletion(messages, { model, temperature: 0.9 })
   }
 
   async generateConversationFeedback(
     conversationHistory: AIMessage[],
     userMemory: LearningMemory,
-    immersionLevel: number
+    immersionLevel: number,
+    model?: PollinationsTextModel
   ): Promise<string> {
     const systemPrompt = `You are an expert Spanish teacher analyzing a conversation. Provide constructive, encouraging feedback.
 
@@ -199,14 +350,15 @@ Focus on being encouraging while providing actionable insights.`
       }
     ]
 
-    return await this.chatCompletion(messages, { temperature: 0.6 })
+    return await this.chatCompletion(messages, { model, temperature: 0.6 })
   }
 
   async simplifyMediaContent(
     content: string,
     contentType: 'youtube' | 'lyrics' | 'dialogue',
     userLevel: number,
-    userMemory: LearningMemory
+    userMemory: LearningMemory,
+    model?: PollinationsTextModel
   ): Promise<string> {
     const systemPrompt = `You are an expert at adapting Spanish content to learner levels.
 
@@ -245,7 +397,7 @@ Analyze and simplify this content. Return JSON:
       { role: 'user', content: `Content to analyze:\n\n${content}` }
     ]
 
-    return await this.chatCompletion(messages, { temperature: 0.7 })
+    return await this.chatCompletion(messages, { model, temperature: 0.7 })
   }
 
   async checkExerciseAnswer(
@@ -256,7 +408,8 @@ Analyze and simplify this content. Return JSON:
       type: string
     },
     mode: LearningMode,
-    immersionLevel: number
+    immersionLevel: number,
+    model?: PollinationsTextModel
   ): Promise<string> {
     const modeStyles: Record<LearningMode, string> = {
       'smart-tutor': 'Provide detailed explanation of correctness and why',
@@ -287,7 +440,7 @@ Provide feedback in JSON:
       }
     ]
 
-    return await this.chatCompletion(messages, { temperature: 0.6 })
+    return await this.chatCompletion(messages, { model, temperature: 0.6 })
   }
 }
 
