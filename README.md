@@ -69,6 +69,10 @@ npm run dev
 npm run build
 ```
 
+## Deployment
+
+GitHub Pages deployment is automated through `.github/workflows/deploy.yml`. Pushes to the `main` branch build the Vite site and publish the `dist` output to GitHub Pages using the repository path as the base URL.
+
 ## Application Structure
 
 ```
